@@ -1,0 +1,45 @@
+---
+workstations:
+  hosts:
+    x.x.x.x:
+
+ipas:
+  ## ipa, dns, ldap
+  hosts:
+    x.x.x.x:
+
+ansibles:
+  hosts:
+    localhost:
+      ansible_connection: local
+
+repositories:
+  hosts:
+    x.x.x.x:
+
+openshifts:
+  hosts:
+    x.x.x.x:
+    x.x.x.x:
+
+satellites:
+  hosts:
+    x.x.x.x:
+    x.x.x.x:
+
+new_virtual_machines:
+  vars:
+    new_hostname: "server-1.xxx.xxx"
+    new_name: "static-enp1s0"
+    new_method: "manual"
+    new_ifname: "enp1s0"
+    new_ip: "x.x.x.x/x"
+    new_gw: "x.x.x.x"
+    new_type: "ethernet"
+    new_dns: "x.x.x.x"
+    new_dnssearch: "xxx.xxx"
+    new_autoconnect: "true"
+  hosts:
+    x.x.x.x:
+
+
