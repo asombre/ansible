@@ -1,0 +1,176 @@
+---
+- hosts: 
+    repos
+  vars:
+    hosts_entry: "x.x.x.x host.xxx.xxx host"
+    dir_pkgs: "/dir"
+    web_pkgs: "dir"
+  tasks:
+  - name: Add repo in hosts
+    lineinfile:
+      path: /etc/hosts
+      line: "{{ hosts_entry }}"
+
+  - name: Setup rhel repo directory
+    file:
+      path: "{{ dir_pkgs }}/rhel/9.4/"
+      state: directory
+      mode: '0755'
+      owner: nobody
+      group: nobody
+
+  - name: create rhel softlink
+    file:
+      src: "{{ dir_pkgs }}/rhel/9.4"
+      dest: "{{ dir_pkgs }}/rhel/9"
+      owner: nobody
+      group: nobody
+      state: link
+
+  - name: Remove isofile.repo
+    file:
+      path: /etc/yum.repos.d/isofile.repo
+      state: absent
+
+  - name: Setup local appstream repo
+    yum_repository:
+      name: AppStream
+      description: rhel9.4 appstream
+      baseurl: "http://{{ web_pkgs }}/repo/rhel/9/AppStream/"
+      mirrorlist: "file://{{ dir_pkgs }}/rhel/9/"
+      file: localhttp.repo
+      gpgcheck: yes
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+      enabled: yes
+      sslverify: no
+      state: present
+
+  - name: Setup iso baseos repo
+    yum_repository:
+      name: BaseOS
+      description: rhel9.4 baseos
+      baseurl: "http://{{ web_pkgs }}/repo/rhel/9/BaseOS/"
+      mirrorlist: file://{{ dir_pkgs }}/rhel/9/
+      file: localhttp.repo
+      gpgcheck: yes
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+      enabled: yes
+      sslverify: no
+      state: present
+
+  - name: line 1
+    lineinfile:
+      path: /root/new.sh
+      line: "#!/bin/bash"
+      create: yes
+
+  - name: line 2
+    lineinfile:
+      path: /root/new.sh
+      line: "insert script"
+      create: yes
+
+  - name: Install packages
+    yum:
+      name:
+        - vim
+        - yum-utils
+        - httpd
+        - nfs-utils
+        - vsftpd
+        - ftp
+        - tftp-server
+      state: present
+
+  - name: start nfs
+    service:
+      name: nfs-server
+      state: started
+
+  - name: Setup nfs directory
+    file:
+      path: /share
+      state: directory
+      mode: '0755'
+      owner: nobody
+      group: nobody
+
+  - name: Add nfs share path
+    ## test exportfs
+    ## client mount -t nfs {{ host }}:/share /share
+    lineinfile:
+      path: /etc/exports
+      line: "/share {{ network_ip }}/{{ subnet }}(rw)"
+      create: yes
+
+  - name: Add nfs repo path
+    ## test exportfs
+    ## client mount -t nfs {{ host }}:/{{ dir_pkgs}} /{{ dir_pkgs }}
+    lineinfile:
+      path: /etc/exports
+      line: "/{{ dir }} {{ network_ip }}/{{ subnet }}(rw)"
+      create: yes
+
+  - name: start nfs
+    service:
+      name: nfs-server
+      state: reloaded
+
+  - name: add firewall rules for nfs 2049
+    firewalld:
+      port: 2049/tcp
+      permanent: true
+      state: enabled
+
+  - name: add firewall rules for nfs 20048
+    firewalld:
+      port: 20048/tcp
+      permanent: true
+      state: enabled
+
+  - name: add firewall rules for nfs 111
+    firewalld:
+      port: 111/tcp
+      permanent: true
+      state: enabled
+
+  - name: update vsftp anon enable
+    lineinfile:
+      dest: /etc/vsftpd/vsftpd.conf
+      state: present
+      regexp: anonymous_enable=NO
+      line: anonymous_enable=YES
+
+  - name: update vsftp write_enable
+    lineinfile:
+      dest: /etc/vsftpd/vsftpd.conf
+      state: present
+      regexp: write_enable=YES
+      line: write_enable=NO
+
+  - name: update vsftp pasv min port
+    lineinfile:
+      path: /etc/vsftpd/vsftpd.conf
+      line: "pasv_min_port=10021"
+
+  - name: update vsftp pasv max port
+    lineinfile:
+      path: /etc/vsftpd/vsftpd.conf
+      line: "pasv_min_port=10031"
+
+  - name: update fw 10021-10031
+    firewalld:
+      port: 10021-10031/tcp
+      permanent: true
+      state: enabled
+
+  - name: update fw ftp
+    firewalld:
+      service: ftp
+      permanent: true
+      state: enabled
+
+  - name: start ftp
+    service:
+      name: vsftpd
+      state: started
