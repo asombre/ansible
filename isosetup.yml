@@ -3,6 +3,15 @@
     repositories
   gather_facts: no
   vars:
+    iso_mount: "iso"
+    isodir: "/{{ iso_mount }}"
+    iso_src: "/root/rhel-9.4-x86_64-dvd.iso"
+    new_hostname: "xxxx.xxx.xxx"
+    os: "rhel"
+    os_major: 9
+    os_minior: 4
+    reponame: "repo"
+    repodir: "/{{ reponame }}"
     repo_list:
       - vim
       - yum-utils
@@ -10,23 +19,23 @@
   tasks:
    - name: Set hostname
      hostname:
-       name: xxxxxxxx.xxx.xxx
+       name: "{{ new_hostname }}"
 
   - name: Create ISO directory
     file:
-      path: /iso
+      path: "{{ isodir }}"
       state: directory
       mode: '0755'
 
-  - name: Create rhel repo directory
+  - name: Create OS repo directory
     file:
-      path: /repo/rhel/9/
+      path: "{{ repodir }}/{{ os }}/{{ os_major }}/"
       state: directory
       mode: '0755'
 
   - name: Mount ISO
     mount:
-      src: /root/rhel-9.4-x86_64-dvd.iso
+      src: "{{ iso_src }}"
       opts: ro,loop
       path: /iso
       fstype: iso9660
@@ -35,9 +44,9 @@
   - name: Setup iso appstream repo
     yum_repository:
       name: AppStream
-      description: rhel9.4 appstream
-      baseurl: file:///iso/AppStream/
-      mirrorlist: file:///iso/AppStream/
+      description: "{{ os }}{{ os_major }}.{{ os_minor }} appstream"
+      baseurl: "file:///{{ isodir }}/AppStream/"
+      mirrorlist: "file:///{{ isodir }}/AppStream/"
       file: localiso
       gpgcheck: no
       gpgkey: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -48,9 +57,9 @@
   - name: Setup iso baseos repo
     yum_repository:
       name: BaseOS
-      description: rhel9.4 baseos
-      baseurl: file:///iso/BaseOS/
-      mirrorlist: file:///iso/BaseOS/
+      description: "{{ os }}{{ os_major }}.{{ os_minor }} baseos"
+      baseurl: "file:///{{ isodir }}/BaseOS/"
+      mirrorlist: "file:///{{ isodir }}/BaseOS/"
       file: localiso
       gpgcheck: no
       gpgkey: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
