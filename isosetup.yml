@@ -9,7 +9,7 @@
     new_hostname: "xxxx.xxx.xxx"
     os: "rhel"
     os_major: 9
-    os_minior: 4
+    os_minor: 4
     reponame: "repo"
     repodir: "/{{ reponame }}"
     repo_list:
