@@ -1,0 +1,36 @@
+---
+- hosts: localhost
+  vars:
+  tasks:
+    - name: hostvars details 1
+      debug:
+        msg: "{{ hostvars[inventory_hostname]['ansible_facts']['devices'] }}"
+
+    - name: hostvars details 2
+      debug:
+        msg: "{{ hostvars[inventory_hostname]['ansible_facts']['devices']['vda'] }}"
+
+    - name: hostvars details 3
+      debug:
+        msg: "{{ hostvars[inventory_hostname]['ansible_facts']['devices']['vda']['partitions'] }}"
+
+    - name: hostvars details 4
+      debug:
+        msg: "{{ item }}"
+      loop: "{{ lookup('dict', hostvars[inventory_hostname]['ansible_facts']['devices']) }}"
+
+    - name: hostvars details 5
+      debug:
+        msg: "{{ item.key }}: {{ item.value.links }}"
+      loop: "{{ lookup('dict', hostvars[inventory_hostname]['ansible_facts']['devices']['vda']['partitions']) }}"
+
+    - name: hostvars details 6
+      set_fact:
+        vda_part: "{{ item.key }}: {{ item.value.links }}"
+      loop: "{{ lookup('dict', hostvars[inventory_hostname]['ansible_facts']['devices']['vda']['partitions']) }}"
+      register: show_vda_part
+
+    - name: hostvars details 7
+      debug:
+        msg: "{{ show_vda_part }}"
+~                                       
