@@ -1,0 +1,8 @@
+subnet {{ dhcp_subnet }} netmask {{ dhcp_mask }} {
+    option routers {{ dhcp_router_ip }};
+    option subnet-mask {{ dhcp_opt_mask }};
+    option broadcast-address {{ dhcp_opt_bc }};
+    option domain-search {{ domain_name}};
+    option domain-name-servers {{ dns1 }};
+    range {{ start_ip }} {{ end_ip }};
+}
