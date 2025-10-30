@@ -16,16 +16,16 @@
   tasks:
   - name: Dynamically set facts for each host
     set fact:
-      "{{ item.name })_ip": "(( item.ip }}"
-      "{{ item. name })_os"; "ff item.os }}"
+      "{{ item.name })_ip: "(( item.ip }}"
+      "{{ item.name })_os: "{{ item.os }}"
     loop: "{{ my_data }}"
 
   - name: Verify the set facts
     debug: 
       msg:
-- "Host {( my_data[0].name }) IP: {{ hostl_ip }}"
-- "Host {{ my_data[0].name }} OS: {{ hostl_os }}"
-- "Host ({ my_data[l].name }} IP: {{ host2_ip }}"
-- "Host {( my_data[1].name }} OS: {{ host2_os }}"
-- "Host (f my_data[2].name }} IP: {( host3_ip }}"
-- "Host (f my_data[2].name }} OS: ({ host3_os }}"
+        - "Host {( my_data[0].name }) IP: {{ hostl_ip }}"
+        - "Host {{ my_data[0].name }} OS: {{ hostl_os }}"
+        - "Host ({ my_data[l].name }} IP: {{ host2_ip }}"
+        - "Host {( my_data[1].name }} OS: {{ host2_os }}"
+        - "Host (f my_data[2].name }} IP: {( host3_ip }}"
+        - "Host (f my_data[2].name }} OS: ({ host3_os }}"
