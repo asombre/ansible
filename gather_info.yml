@@ -1,8 +1,7 @@
 ---
-- hosts:
-    new_virtual_machines
+- hosts: new_virtual_machines
   tasks:
-    - name: host variables
+    - name: debug ansible facts
       debug:
         msg:
           - "{{ ansible_default_ipv4.address }}"
