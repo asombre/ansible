@@ -1,128 +1,123 @@
 ---
-- hosts: 
-    repositories
+- hosts: repositories
   gather_facts: no
   vars:
-    iso_mount: "iso"
-    isodir: "/{{ iso_mount }}"
-    iso_src: "/root/rhel-9.4-x86_64-dvd.iso"
-    new_hostname: "xxxx.xxx.xxx"
-    os: "rhel"
+    arch_type: "x86_64"
+		iso_dest: "/iso"
+    iso_name: "{{ os }}-{{ os_major }}.{{ os_minor }}-{{ arch_type }}-dvd.iso"
+  	iso_src: "/root/{{ iso_name }}"  
+    os: rhel
     os_major: 9
-    os_minor: 4
-    reponame: "repo"
-    repodir: "/{{ reponame }}"
+    os_minor: 6
+    repo_name: repo
+    repo_path: "/{{ repo_name }}"
     repo_list:
       - vim
       - yum-utils
       - httpd
   tasks:
-   - name: Set hostname
-     hostname:
-       name: "{{ new_hostname }}"
+    - name: Create ISO directory
+      file:
+        path: "{{ iso_dest }}"
+        state: directory
+        mode: '0755'
 
-  - name: Create ISO directory
-    file:
-      path: "{{ isodir }}"
-      state: directory
-      mode: '0755'
+    - name: Create OS repo directory
+      file:
+        path: "{{ repo_path }}/{{ os }}/{{ os_major }}/"
+        state: directory
+        mode: '0755'
 
-  - name: Create OS repo directory
-    file:
-      path: "{{ repodir }}/{{ os }}/{{ os_major }}/"
-      state: directory
-      mode: '0755'
+    - name: Mount ISO
+      mount:
+        src: "{{ iso_src }}"
+        opts: ro,loop
+        path: "{{ iso_dest }}"
+        fstype: iso9660
+        state: ephemeral
 
-  - name: Mount ISO
-    mount:
-      src: "{{ iso_src }}"
-      opts: ro,loop
-      path: /iso
-      fstype: iso9660
-      state: ephemeral
+    - name: Setup iso appstream repo
+      yum_repository:
+        name: AppStream
+        description: "{{ os }}{{ os_major }}.{{ os_minor }} appstream"
+        baseurl: "file:///{{ isodir }}/AppStream/"
+        mirrorlist: "file:///{{ isodir }}/AppStream/"
+        file: localiso
+        gpgcheck: no
+        gpgkey: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+        enabled: yes
+        skip_if_unavailable: yes
+        sslverify: no
 
-  - name: Setup iso appstream repo
-    yum_repository:
-      name: AppStream
-      description: "{{ os }}{{ os_major }}.{{ os_minor }} appstream"
-      baseurl: "file:///{{ isodir }}/AppStream/"
-      mirrorlist: "file:///{{ isodir }}/AppStream/"
-      file: localiso
-      gpgcheck: no
-      gpgkey: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-      enabled: yes
-      skip_if_unavailable: yes
-      sslverify: no
+    - name: Setup iso baseos repo
+      yum_repository:
+        name: BaseOS
+        description: "{{ os }}{{ os_major }}.{{ os_minor }} baseos"
+        baseurl: "file:///{{ isodir }}/BaseOS/"
+        mirrorlist: "file:///{{ isodir }}/BaseOS/"
+        file: localiso
+        gpgcheck: no
+        gpgkey: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+        enabled: yes
+        skip_if_unavailable: yes
+        sslverify: no
 
-  - name: Setup iso baseos repo
-    yum_repository:
-      name: BaseOS
-      description: "{{ os }}{{ os_major }}.{{ os_minor }} baseos"
-      baseurl: "file:///{{ isodir }}/BaseOS/"
-      mirrorlist: "file:///{{ isodir }}/BaseOS/"
-      file: localiso
-      gpgcheck: no
-      gpgkey: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-      enabled: yes
-      skip_if_unavailable: yes
-      sslverify: no
+    - name: Install repo packages
+      yum:
+        name: "{{ item }}"
+        state: present
+        with_items:
+          - yum-utils
+          - vim
+          - httpd
 
-  - name: Install repo packages
-    yum:
-      name: "{{ item }}"
-      state: present
-      with_items:
-        - yum-utils
-        - vim
-        - httpd
+      - name: Start httpd
+        service:
+          name: httpd
+          enabled: true
+          state: started
 
-  - name: Start httpd
-    service:
-      name: httpd
-      enabled: true
-      state: started
+      - name: enable firewall http
+        firewalld:
+          zone: public
+          service: http
+          permanent: true
+          state: enabled
 
-  - name: enable firewall http
-    firewalld:
-      zone: public
-      service: http
-      permanent: true
-      state: enabled
+      - name: reload firewalld
+        service:
+          name: firewalld
+          state: reloaded
 
-  - name: reload firewalld
-    service:
-      name: firewalld
-      state: reloaded
+      - name: placeholder for selinux
+        debug:
+          msg:
+            - "chown -R apache:apache dir"
+            - "setenforce 0"
+            - "semanage fcontext -a -t httpd_sys_context_t 'dir(/.*)?'"
+            - "restorecon -v -R 'dir/'"
+            - "setenforce 1"
 
-  - name: placeholder for selinux
-    debug:
-      msg:
-        - "chown -R apache:apache dir"
-        - "setenforce 0"
-        - "semanage fcontext -a -t httpd_sys_context_t 'dir(/.*)?'"
-        - "restorecon -v -R 'dir/'"
-        - "setenforce 1"
+      - name: Create shutdown script 1
+        lineinfile:
+          path: /root/powerdown.sh
+          line: "#!/bin/bash"
+          create: yes
 
-  - name: Create shutdown script 1
-    lineinfile:
-      path: /root/powerdown.sh
-      line: "#!/bin/bash"
-      create: yes
+      - name: Create shutdown script 2
+        lineinfile:
+          path: /root/powerdown.sh
+          line: "umount /iso; poweroff"
+          create: yes
 
-  - name: Create shutdown script 2
-    lineinfile:
-      path: /root/powerdown.sh
-      line: "umount /iso; poweroff"
-      create: yes
+      - name: Create script
+        file:
+          path: /root/powerdown.sh
+          mode: '0700'
+          state: file
 
-  - name: Create script
-    file:
-      path: /root/powerdown.sh
-      mode: '0700'
-      state: file
-
-  - name: Final messages
-    debug:
-      msg:
-        - "http://x.x.x.x/dir"
-        - "Done"
+      - name: Final messages
+        debug:
+          msg:
+            - "http://x.x.x.x/dir"
+            - "Done"
